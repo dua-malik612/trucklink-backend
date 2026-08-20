@@ -6,10 +6,10 @@ export type RegionDocument = HydratedDocument<Region>;
 @Schema({ timestamps: true })
 export class Region {
   @Prop({ required: true, unique: true })
-  code: string;
+  code!: string;
 
   @Prop({ required: true, trim: true })
-  label: string;
+  label!: string;
 }
 
 export const RegionSchema = SchemaFactory.createForClass(Region);

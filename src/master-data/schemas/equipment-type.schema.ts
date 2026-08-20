@@ -6,10 +6,10 @@ export type EquipmentTypeDocument = HydratedDocument<EquipmentType>;
 @Schema({ timestamps: true })
 export class EquipmentType {
   @Prop({ required: true, unique: true })
-  code: string;
+  code!: string;
 
   @Prop({ required: true, trim: true })
-  label: string;
+  label!: string;
 }
 
 export const EquipmentTypeSchema = SchemaFactory.createForClass(EquipmentType);
