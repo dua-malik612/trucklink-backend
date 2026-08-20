@@ -1,4 +1,3 @@
-// src/auth/auth.service.ts
 import {
     BadRequestException,
     ConflictException,
@@ -21,7 +20,6 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { VerifyForgotPasswordOtpDto } from './dto/verify-forgot-password-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
-// Nest doesn't export a 429 exception by default — define one.
 class TooManyRequestsException extends HttpException {
     constructor(message: string) {
         super(message, HttpStatus.TOO_MANY_REQUESTS);
@@ -135,7 +133,7 @@ export class AuthService {
         };
     }
 
-   // ---- Step 3: signup ----
+    // ---- Step 3: signup ----
     async signup(dto: SignupDto) {
         try {
             const record = await this.redis.getJson<SignupTokenRecord>(
@@ -165,17 +163,18 @@ export class AuthService {
             await this.redis.del(this.signupTokenKey(dto.verificationToken));
 
             return user;
-        } catch (error) {
+        } catch (error: any) {
             console.error('--- EXPLICIT SIGNUP ERROR LOG ---', error);
-            throw error;
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new BadRequestException(`SIGNUP_CRASH: ${error?.message || 'Unknown error'}`);
         }
     }
 
     // ---- Forgot password: step 1, request OTP ----
     async forgotPassword(dto: ForgotPasswordDto) {
         const user = await this.usersService.findByEmail(dto.email);
-        // Always return the same shape whether or not the account exists,
-        // so this endpoint can't be used to enumerate registered emails.
         if (!user) {
             return { email: dto.email, otpSent: true, expiresInSeconds: this.otpTtl };
         }
@@ -286,7 +285,6 @@ export class AuthService {
 
     // ---- Logout ----
     async logout(refreshToken: string) {
-        // Store the revoked token until its natural expiry so refresh() rejects it.
         let ttl = 7 * 24 * 60 * 60;
         try {
             const decoded: any = this.jwtService.decode(refreshToken);
@@ -294,7 +292,7 @@ export class AuthService {
                 ttl = Math.max(decoded.exp - Math.floor(Date.now() / 1000), 1);
             }
         } catch {
-            // best-effort; fall back to default ttl
+            // best-effort
         }
         await this.redis.set(`revoked_refresh:${refreshToken}`, '1', ttl);
     }

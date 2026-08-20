@@ -1,9 +1,7 @@
-// src/users/users.service.ts
 import {
   ConflictException,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
   OnModuleInit,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -11,6 +9,7 @@ import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { User, UserDocument, UserRole } from './schemas/user.schema';
 import { UpdateUserDto } from './dto/update-user.dto';
+
 export interface CreateUserInput {
   email: string;
   password: string;
@@ -28,7 +27,6 @@ export class UsersService implements OnModuleInit {
     return this.userModel.findOne({ email: email.toLowerCase() });
   }
 
-  /** Same as findByEmail but includes passwordHash — used for login. */
   async findByEmailWithPassword(email: string): Promise<UserDocument | null> {
     return this.userModel
       .findOne({ email: email.toLowerCase() })
@@ -63,13 +61,14 @@ export class UsersService implements OnModuleInit {
     }
     await admin.save();
   }
-async create(input: CreateUserInput): Promise<any> {
+
+  async create(input: CreateUserInput): Promise<any> {
     const existing = await this.findByEmail(input.email);
     if (existing) {
       throw new ConflictException('Email already registered');
     }
     const passwordHash = await bcrypt.hash(input.password, 10);
-    
+
     const cleanPhone = input.phone && input.phone.trim() !== '' ? input.phone : undefined;
 
     const user = new this.userModel({
@@ -81,7 +80,7 @@ async create(input: CreateUserInput): Promise<any> {
       phone: cleanPhone,
       emailVerifiedAt: new Date(),
     });
-    
+
     const savedUser = await user.save();
     return savedUser.toObject();
   }
