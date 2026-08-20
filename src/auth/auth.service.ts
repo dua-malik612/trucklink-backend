@@ -135,30 +135,40 @@ export class AuthService {
         };
     }
 
-    // ---- Step 3: signup ----
+   // ---- Step 3: signup ----
     async signup(dto: SignupDto) {
-        const record = await this.redis.getJson<SignupTokenRecord>(
-            this.signupTokenKey(dto.verificationToken),
-        );
-        if (!record) {
-            throw new UnauthorizedException('Verification token is invalid or expired');
+        try {
+            const record = await this.redis.getJson<SignupTokenRecord>(
+                this.signupTokenKey(dto.verificationToken),
+            );
+
+            if (!record) {
+                throw new UnauthorizedException('Verification token is invalid or expired');
+            }
+
+            if (
+                record.email.toLowerCase() !== dto.email.toLowerCase() ||
+                String(record.role).toUpperCase() !== String(dto.role).toUpperCase()
+            ) {
+                throw new ConflictException('Email/role do not match the verified token');
+            }
+
+            const user = await this.usersService.create({
+                email: dto.email,
+                password: dto.password,
+                role: String(dto.role).toUpperCase() === 'DRIVER' ? UserRole.DRIVER : UserRole.RECRUITER,
+                firstName: dto.firstName,
+                lastName: dto.lastName,
+                phone: dto.phone,
+            });
+
+            await this.redis.del(this.signupTokenKey(dto.verificationToken));
+
+            return user;
+        } catch (error) {
+            console.error('--- EXPLICIT SIGNUP ERROR LOG ---', error);
+            throw error;
         }
-        if (record.email.toLowerCase() !== dto.email.toLowerCase() || record.role !== dto.role) {
-            throw new ConflictException('Email/role do not match the verified token');
-        }
-
-        const user = await this.usersService.create({
-            email: dto.email,
-            password: dto.password,
-            role: dto.role === 'DRIVER' ? UserRole.DRIVER : UserRole.RECRUITER,
-            firstName: dto.firstName,
-            lastName: dto.lastName,
-            phone: dto.phone,
-        });
-
-        await this.redis.del(this.signupTokenKey(dto.verificationToken));
-
-        return user;
     }
 
     // ---- Forgot password: step 1, request OTP ----

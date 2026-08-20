@@ -70,13 +70,17 @@ export class UsersService implements OnModuleInit {
       throw new ConflictException('Email already registered');
     }
     const passwordHash = await bcrypt.hash(input.password, 10);
+    
+    // Agar phone empty string "" hai to undefined pass karein taakay DB crash na ho
+    const cleanPhone = input.phone && input.phone.trim() !== '' ? input.phone : undefined;
+
     const user = new this.userModel({
       email: input.email.toLowerCase(),
       passwordHash,
       role: input.role,
       firstName: input.firstName,
       lastName: input.lastName,
-      phone: input.phone,
+      phone: cleanPhone,
       emailVerifiedAt: new Date(),
     });
     return user.save();
