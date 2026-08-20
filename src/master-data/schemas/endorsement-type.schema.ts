@@ -5,14 +5,11 @@ export type EndorsementTypeDocument = HydratedDocument<EndorsementType>;
 
 @Schema({ timestamps: true })
 export class EndorsementType {
-  @Prop({ required: true, unique: true, trim: true })
-  code!: string;
+  @Prop({ required: true, unique: true })
+  code: string;
 
   @Prop({ required: true, trim: true })
-  label!: string;
+  label: string;
 }
 
-export const EndorsementTypeSchema =
-  SchemaFactory.createForClass(EndorsementType);
-
-EndorsementTypeSchema.index({ code: 1 }, { unique: true });
+export const EndorsementTypeSchema = SchemaFactory.createForClass(EndorsementType);

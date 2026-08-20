@@ -5,14 +5,11 @@ export type EquipmentTypeDocument = HydratedDocument<EquipmentType>;
 
 @Schema({ timestamps: true })
 export class EquipmentType {
-  @Prop({ required: true, unique: true, trim: true })
-  code!: string;
+  @Prop({ required: true, unique: true })
+  code: string;
 
   @Prop({ required: true, trim: true })
-  label!: string;
+  label: string;
 }
 
-export const EquipmentTypeSchema =
-  SchemaFactory.createForClass(EquipmentType);
-
-EquipmentTypeSchema.index({ code: 1 }, { unique: true });
+export const EquipmentTypeSchema = SchemaFactory.createForClass(EquipmentType);
