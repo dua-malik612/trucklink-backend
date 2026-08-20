@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -12,19 +12,20 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: true,
+      forbidNonWhitelisted: false, // Extra payload keys se crash rokne ke liye false karein
       transform: true,
       exceptionFactory: (errors) => {
         const details = errors.map((e) => ({
           field: e.property,
           issue: Object.values(e.constraints ?? {}).join(', '),
         }));
-        return {
+        // NestJS exception instance return karein (Plane object nahi)
+        return new BadRequestException({
           statusCode: 400,
           message: 'Validation failed',
           error: 'Bad Request',
           details,
-        };
+        });
       },
     }),
   );
@@ -32,7 +33,11 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  app.enableCors();
+  // CORS configuration
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
 
   await app.listen(process.env.PORT ?? 3000);
 }
