@@ -63,15 +63,14 @@ export class UsersService implements OnModuleInit {
     }
     await admin.save();
   }
-
-  async create(input: CreateUserInput): Promise<UserDocument> {
+async create(input: CreateUserInput): Promise<UserDocument> {
     const existing = await this.findByEmail(input.email);
     if (existing) {
       throw new ConflictException('Email already registered');
     }
     const passwordHash = await bcrypt.hash(input.password, 10);
     
-    // Agar phone empty string "" hai to undefined pass karein taakay DB crash na ho
+    // Clean empty phone number string
     const cleanPhone = input.phone && input.phone.trim() !== '' ? input.phone : undefined;
 
     const user = new this.userModel({
@@ -83,7 +82,9 @@ export class UsersService implements OnModuleInit {
       phone: cleanPhone,
       emailVerifiedAt: new Date(),
     });
-    return user.save();
+    
+    const savedUser = await user.save();
+    return savedUser.toObject(); // Document ko plain object banaya taakay crash na ho
   }
 
   async updateMe(userId: string, dto: UpdateUserDto): Promise<UserDocument> {
