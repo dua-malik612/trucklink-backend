@@ -1,4 +1,3 @@
-// src/common/filters/http-exception.filter.ts
 import {
   ArgumentsHost,
   Catch,
@@ -29,25 +28,35 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
     let details: any = undefined;
-    let code = CODE_MAP[statusCode];
 
     if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
       const res = exception.getResponse();
-      code = CODE_MAP[statusCode] ?? 'ERROR';
 
       if (typeof res === 'string') {
         message = res;
       } else if (typeof res === 'object' && res !== null) {
         const r = res as any;
-        message = Array.isArray(r.message) ? 'Validation failed' : r.message ?? exception.message;
+        message = Array.isArray(r.message)
+          ? 'Validation failed'
+          : r.message ?? exception.message;
         if (Array.isArray(r.message)) {
           details = r.message;
+        } else if (r.details) {
+          details = r.details;
         }
       }
     } else if (exception instanceof Error) {
       message = exception.message;
     }
+
+    const code = CODE_MAP[statusCode] ?? 'ERROR';
+
+    // Terminal aur Railway Dashboard par error print karwane ke liye
+    console.error('--- EXCEPTION CAUGHT BY FILTER ---');
+    console.error(`PATH: ${request.url}`);
+    console.error(`STATUS: ${statusCode}`);
+    console.error('DETAILS:', exception);
 
     response.status(statusCode).json({
       error: {
