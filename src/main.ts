@@ -43,7 +43,7 @@ async function bootstrap() {
     }),
   );
 
-  // app.useGlobalInterceptors(new ResponseInterceptor());
+  app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());
 
   app.enableCors({
