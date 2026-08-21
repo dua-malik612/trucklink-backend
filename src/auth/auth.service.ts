@@ -80,36 +80,41 @@ export class AuthService {
         return `reset_token:${token}`;
     }
 
-    // ---- Step 1: request OTP ----
-    async requestOtp(dto: RequestOtpDto) {
-        const existing = await this.usersService.findByEmail(dto.email);
-        if (existing) {
-            throw new ConflictException('An account already exists for this email');
-        }
-
-        const attempts = await this.redis.incrWithWindow(
-            this.otpRateKey(dto.email),
-            this.otpResendWindow,
-        );
-        if (attempts > this.otpResendMax) {
-            throw new TooManyRequestsException('Too many OTP requests. Try again later.');
-        }
-
-        const otp = randomInt(0, 1_000_000).toString().padStart(6, '0');
-        await this.redis.setJson<OtpRecord>(
-            this.otpKey(dto.email),
-            { otp, role: dto.role },
-            this.otpTtl,
-        );
-
-        await this.mailService.sendOtpEmail(dto.email, otp, this.otpTtl);
-
-        return {
-            email: dto.email,
-            otpSent: true,
-            expiresInSeconds: this.otpTtl,
-        };
+   // ---- Step 1: request OTP ----
+async requestOtp(dto: RequestOtpDto) {
+    const existing = await this.usersService.findByEmail(dto.email);
+    if (existing) {
+        throw new ConflictException('An account already exists for this email');
     }
+
+    const attempts = await this.redis.incrWithWindow(
+        this.otpRateKey(dto.email),
+        this.otpResendWindow,
+    );
+    if (attempts > this.otpResendMax) {
+        throw new TooManyRequestsException('Too many OTP requests. Try again later.');
+    }
+
+    const otp = randomInt(0, 1_000_000).toString().padStart(6, '0');
+    console.log('--- OTP GENERATED ---', otp, 'for key:', this.otpKey(dto.email));
+
+    await this.redis.setJson<OtpRecord>(
+        this.otpKey(dto.email),
+        { otp, role: dto.role },
+        this.otpTtl,
+    );
+
+    const verify = await this.redis.getJson<OtpRecord>(this.otpKey(dto.email));
+    console.log('--- IMMEDIATE REDIS READBACK ---', verify);
+
+    await this.mailService.sendOtpEmail(dto.email, otp, this.otpTtl);
+
+    return {
+        email: dto.email,
+        otpSent: true,
+        expiresInSeconds: this.otpTtl,
+    };
+}
 
     // ---- Step 2: verify OTP ----
     async verifyOtp(dto: VerifyOtpDto) {
